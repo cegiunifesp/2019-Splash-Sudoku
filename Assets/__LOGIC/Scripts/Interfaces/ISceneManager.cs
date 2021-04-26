@@ -1,0 +1,4 @@
+﻿interface ISceneManager
+{
+    void Ready();
+}
