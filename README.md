@@ -4,7 +4,7 @@ Neste jogo você brinca e se diverte com as tintas enquanto desenvolve sua lógi
 # Guia para programação
 Abaixo estão algumas indicações de como deve ser escrito o código com a finalidade de garantir clareza, eficiência e organização. Ajude na legibilidade do código que muito provávelmente terá de ser alterado no futuro.
 
-VERSÃO DO UNITY: DESCONHECIDA
+VERSÃO DO UNITY: 2019.2.5f1
 
 ## Dicas gerais
 * Utilize funções pontuais que atinjam um objetivo consistentemente: o requisito pode mudar, mas com um código bem preparado você poderá alterar apenas parâmetros para atingir um novo objetivo, sem necessidade de reescrever o código.
