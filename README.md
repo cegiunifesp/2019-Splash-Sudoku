@@ -3,6 +3,9 @@ Neste jogo você brinca e se diverte com as tintas enquanto desenvolve sua lógi
 
 - Este jogo utilizava o serviço GameSparks para gerenciamento de usuários, placares e conquistas. Porém, o serviço foi descontinuado em 2021. Portanto, funcionalidades que dependiam do GameSparks estão atualmente quebradas e o projeto conta com diversos alertas de erro relacionados a isso durante as builds.
 
+<img width="358" height="719" alt="image" src="https://github.com/user-attachments/assets/464cdbfb-b141-4319-b338-5b993db021d6" />
+
+
 # Guia para programação
 Abaixo estão algumas indicações de como deve ser escrito o código com a finalidade de garantir clareza, eficiência e organização. Ajude na legibilidade do código que muito provávelmente terá de ser alterado no futuro.
 
