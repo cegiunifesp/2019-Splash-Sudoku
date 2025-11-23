@@ -402,9 +402,6 @@ namespace GameSparks.Platforms
                     case RuntimePlatform.WSAPlayerARM:
                         return "WSA";
 
-                    case RuntimePlatform.TizenPlayer:
-                        return "TIZEN";
-
                     case RuntimePlatform.PS4:
                         return "PS4";
 
@@ -415,9 +412,6 @@ namespace GameSparks.Platforms
                     case RuntimePlatform.SamsungTVPlayer:
                         return "SAMSUNGTV";
 #endif
-
-                    case RuntimePlatform.WiiU:
-                        return "WIIU";
 
                     case RuntimePlatform.tvOS:
                         return "TVOS";
