@@ -1,6 +1,8 @@
 # Splash Sudoku
 Neste jogo você brinca e se diverte com as tintas enquanto desenvolve sua lógica para posicionar as cores de modo que não se repitam na mesma linha, coluna ou diagonal.
 
+- Este jogo utilizava o serviço GameSparks para gerenciamento de usuários, placares e conquistas. Porém, o serviço foi descontinuado em 2021. Portanto, funcionalidades que dependiam do GameSparks estão atualmente quebradas e o projeto conta com diversos alertas de erro relacionados a isso durante as builds.
+
 # Guia para programação
 Abaixo estão algumas indicações de como deve ser escrito o código com a finalidade de garantir clareza, eficiência e organização. Ajude na legibilidade do código que muito provávelmente terá de ser alterado no futuro.
 
