@@ -13,6 +13,7 @@ public class ScoreSceneManager : MonoBehaviour, ISceneManager
 
     public void Ready()
     {
+        LoadRanking();
     }
 
     public void LoadRanking()
