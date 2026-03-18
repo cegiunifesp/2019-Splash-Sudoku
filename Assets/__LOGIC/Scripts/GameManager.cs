@@ -81,8 +81,6 @@ public class GameManager : MonoBehaviour
         Relogio.text = "0";
         ChangeCurrentColor(Color.white);
         Paused = false;
-
-
     }
 
     public void StopGame()
@@ -280,8 +278,6 @@ public class GameManager : MonoBehaviour
         //gameObject.transform.position = OutBase.transform.position;
         gameObject.SetActive(false);
     }
-
-
 
     public void Update()
     {

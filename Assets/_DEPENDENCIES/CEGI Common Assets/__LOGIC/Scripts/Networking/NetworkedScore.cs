@@ -1,76 +1,60 @@
-﻿using GameSparks.Api.Responses;
-using GameSparks.Core;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+[Serializable]
+public struct NetworkedScoreEntry
+{
+    public string Score;
+    public string Name;
+}
+
 public class NetworkedScore : SingletonBehaviour<NetworkedScore>
 {
-    public string AccountLogin = "Joe";
-    public string AccountPassword = "#secret#";
+    private const int MaxStoredScores = 100;
+    private readonly List<NetworkedScoreEntry> _runtimeScores = new List<NetworkedScoreEntry>();
     public string GameName;
 
-    [ContextMenu("Register Current Credentials")]
-    private void RegisterCredentials()
+    [ContextMenu("Clear Runtime Scores")]
+    private void ClearLocalScores()
     {
-        GameSparksConnection.Instance.Register(AccountLogin, AccountLogin, AccountPassword, data => Debug.Log(data.JSONString));
+        _runtimeScores.Clear();
     }
 
-    private void Authenticated(Action action)
+    public void PushScore(string nickName, int score, Action onFinished = null)
     {
-        var gameSparksConnection = GameSparksConnection.Instance;
-        if (!gameSparksConnection.LoggedIn)
+        var cleanName = string.IsNullOrWhiteSpace(nickName) ? "Player" : nickName.Trim();
+        _runtimeScores.Add(new NetworkedScoreEntry
         {
-            gameSparksConnection.Login(AccountLogin, AccountPassword, response =>
-            {
-                if (gameSparksConnection.LoggedIn)
-                    action();
-
-            });
-            return;
-        }
-        action();
-    }
-
-    public void PushScore(string nickName, int score, Action<LogEventResponse> onFinished = null)
-    {
-        Authenticated(() =>
-        {
-            GameSparksConnection.Instance.SendEvent("PushScore", scoreEvent =>
-            {
-                scoreEvent.SetEventAttribute("GameName", GameName).SetEventAttribute("Nickname", nickName)
-                    .SetEventAttribute("Score", score);
-            }, onFinished);
+            Name = cleanName,
+            Score = score.ToString()
         });
-    }
 
+        SortAndTrim(_runtimeScores);
+        onFinished?.Invoke();
+    }
 
     public void GetScores(int count, Action<NetworkedScoreEntry[]> onFinished)
     {
-        Authenticated(() =>
-        {
-            GameSparksConnection.Instance.SendEvent("GetScores",
-                scoreEvent => { scoreEvent.SetEventAttribute("GameName", GameName).SetEventAttribute("Count", count); },
-                response =>
-                {
-                    List<GSData> scoreDataList = response.ScriptData.GetGSDataList("score");
-                    NetworkedScoreEntry[] scoreList = new NetworkedScoreEntry[scoreDataList.Count];
-                    for (var i = 0; i < scoreDataList.Count; i++)
-                    {
-                        var score = scoreDataList[i].JSON;
-                        scoreList[i] = JsonConvert.DeserializeObject<NetworkedScoreEntry>(score);
-                    }
+        SortAndTrim(_runtimeScores);
 
-                    onFinished.Invoke(scoreList);
-                });
-        });
+        var safeCount = Mathf.Clamp(count, 0, _runtimeScores.Count);
+        var result = _runtimeScores.GetRange(0, safeCount).ToArray();
+        onFinished?.Invoke(result);
     }
-  
-}
 
-    public struct NetworkedScoreEntry
+    private void SortAndTrim(List<NetworkedScoreEntry> scores)
     {
-        public string Score;
-        public string Name;
+        scores.Sort((a, b) => ParseScore(b.Score).CompareTo(ParseScore(a.Score)));
+        if (scores.Count > MaxStoredScores)
+        {
+            scores.RemoveRange(MaxStoredScores, scores.Count - MaxStoredScores);
+        }
     }
+
+    private int ParseScore(string scoreValue)
+    {
+        int parsed;
+        return int.TryParse(scoreValue, out parsed) ? parsed : 0;
+    }
+}
