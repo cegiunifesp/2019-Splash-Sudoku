@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
+    private const int GridSize = 5;
+    private const int GridCellCount = GridSize * GridSize;
+
     public static GameManager Instance;
 
     [Header("Scenes")]
@@ -141,8 +142,8 @@ public class GameManager : MonoBehaviour
 
     private bool HasWhite()
     {
-        foreach (Paintable i in Images)
-            if (i.color == Color.white)
+        foreach (Paintable paintable in Images)
+            if (paintable.color == Color.white)
                 return true;
         return false;
     }
@@ -150,7 +151,7 @@ public class GameManager : MonoBehaviour
     private CheckResult CheckAll()
     {
         HashSet<int> errors = new HashSet<int>();
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < GridSize; i++)
         {
             CheckRow(i, ref errors);
             CheckColumn(i, ref errors);
@@ -183,7 +184,8 @@ public class GameManager : MonoBehaviour
     private void CheckRow(int row, ref HashSet<int> errors)
     {
         List<Color> colors = new List<Color>();
-        int start = row * 5, end = row * 5 + 5;
+        int start = row * GridSize;
+        int end = start + GridSize;
         for (int i = start; i < end; i++)
         {
             Paintable image = Images[i];
@@ -196,7 +198,7 @@ public class GameManager : MonoBehaviour
     private void CheckColumn(int column, ref HashSet<int> errors)
     {
         List<Color> colors = new List<Color>();
-        for (int i = column; i < 25; i += 5)
+        for (int i = column; i < GridCellCount; i += GridSize)
         {
             Paintable image = Images[i];
             if (colors.Contains(image.color))
