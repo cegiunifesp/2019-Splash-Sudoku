@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class ErrorMessage : MonoBehaviour
 {
@@ -8,7 +9,7 @@ public class ErrorMessage : MonoBehaviour
     private float _cur_time;
 
     public Image fundo;
-    public Text texto;
+    public TextMeshProUGUI texto;
 
     private void Start()
     {

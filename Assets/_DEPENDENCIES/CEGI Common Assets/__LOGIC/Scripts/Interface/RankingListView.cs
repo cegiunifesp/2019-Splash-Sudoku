@@ -4,11 +4,6 @@ public class RankingListView : MonoBehaviour
 {
     public ScoreObject RankingEntryTemplate;
 
-    private void Awake()
-    {
-        Refresh();
-    }
-
     public void Refresh()
     {
         if (NetworkedScore.Instance == null)
@@ -29,20 +24,28 @@ public class RankingListView : MonoBehaviour
         for (var i = 0; i < scores.Length; i++)
         {
             var score = scores[i];
-            ScoreObject entry = Instantiate(RankingEntryTemplate, transform);
-            entry.Init((i + 1).ToString(), score.Name, score.Score);
+            ScoreObject entry = Instantiate(RankingEntryTemplate, transform, false);
+            entry.name = $"Ranking_Item_{i + 1}";
+            string formattedTempo = score.Score.EndsWith("s") ? score.Score : $"{score.Score}s";
+            entry.Init((i + 1).ToString(), score.Name, formattedTempo);
         }
     }
 
     private void Clear()
     {
-        ScoreObject[] entries = transform.GetComponentsInChildren<ScoreObject>();
-        for (var i = 0; i < entries.Length; i++)
+        for (int i = transform.childCount - 1; i >= 0; i--)
         {
-            if (entries[i] != null && entries[i] != RankingEntryTemplate)
+            Transform child = transform.GetChild(i);
+            if (child.name.Contains("TitleLine") || child.name.Contains("Header") || child.GetSiblingIndex() == 0)
+                continue;
+
+            if (RankingEntryTemplate != null && child.gameObject == RankingEntryTemplate.gameObject)
             {
-                Destroy(entries[i].gameObject);
+                child.gameObject.SetActive(false);
+                continue;
             }
+
+            Destroy(child.gameObject);
         }
     }
 }

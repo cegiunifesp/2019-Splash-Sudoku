@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -44,7 +45,7 @@ public class GameManager : MonoBehaviour
     public GameObject BackButton2;
 
     [Header("InGame")]
-    public Text Relogio;
+    public TextMeshProUGUI Relogio;
     public Animator Paleta;
     private float _time = 0;
     public Image Brush;
@@ -59,7 +60,8 @@ public class GameManager : MonoBehaviour
 
     [Header("AddScore")]
     public Text Nome;
-    public Text ScoreText;
+    public TextMeshProUGUI NomeTMP;
+    public TextMeshProUGUI ScoreText;
 
     [Header("Events")]
     public UnityEngine.Events.UnityEvent StartGameEvent;
@@ -158,7 +160,12 @@ public class GameManager : MonoBehaviour
 
     public void AddNewScore()
     {
-        string nome = Nome != null ? Nome.text : string.Empty;
+        string nome = string.Empty;
+        if (NomeTMP != null && !string.IsNullOrWhiteSpace(NomeTMP.text))
+            nome = NomeTMP.text;
+        else if (Nome != null && !string.IsNullOrWhiteSpace(Nome.text))
+            nome = Nome.text;
+
         if (!string.IsNullOrWhiteSpace(nome))
         {
             NetworkedScore.Instance?.PushScore(nome, Mathf.FloorToInt(_time));
