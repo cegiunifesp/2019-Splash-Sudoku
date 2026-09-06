@@ -42,6 +42,11 @@ public class TutorialController : MonoBehaviour
     {
         yield return new WaitForSeconds(1.8f);
 
+        // Force reset the triggers here to ignore GameManager's initial setup
+        pickedColor = false; 
+        painted = false;
+
+        // Passos 1 e 2 (Textos flutuantes - não bloqueiam cliques)
         yield return StartCoroutine(Fade(1f, pickCanvasGroup));
 
         foreach (Animator anim in m_ColorPickers)
@@ -65,13 +70,15 @@ public class TutorialController : MonoBehaviour
 
         yield return new WaitForSeconds(1f);
 
+        // Passo 3 (Painel de regras - BLOQUEIA o fundo e ativa o botão)
+        finalInstruction.blocksRaycasts = true;
+        finalInstruction.interactable = true;
         yield return StartCoroutine(Fade(1f, finalInstruction));
     }
 
     public IEnumerator Fade(float targetAlpha, CanvasGroup group)
     {
         float step = Mathf.Abs(targetAlpha - group.alpha) / fadeDuration;
-        group.blocksRaycasts = true;
 
         while(!Mathf.Approximately(group.alpha, targetAlpha))
         {
@@ -79,8 +86,12 @@ public class TutorialController : MonoBehaviour
             yield return null;
         }
 
+        // Desativa o bloqueio APENAS quando o painel fica 100% invisível
         if (targetAlpha == 0)
+        {
             group.blocksRaycasts = false;
+            group.interactable = false;
+        }
     }
 
     public void FinishTutorial()
