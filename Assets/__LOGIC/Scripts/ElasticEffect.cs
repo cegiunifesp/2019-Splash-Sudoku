@@ -1,29 +1,31 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ElasticEffect : MonoBehaviour
 {
-    RectTransform rectTransform;
+    private RectTransform _rectTransform;
 
-    public Vector2 minSize, maxSize;
+    public Vector2 minSize;
+    public Vector2 maxSize;
     public float speed = 0.05f;
-    private Vector2 target;
+
+    private Vector2 _target;
 
     private void Start()
     {
-        rectTransform = GetComponent<RectTransform>();
-        target = minSize;
+        _rectTransform = GetComponent<RectTransform>();
+        _target = minSize;
     }
 
     private void Update()
     {
-        rectTransform.localScale = Vector3.MoveTowards(rectTransform.localScale, target, speed * Time.deltaTime);
+        if (_rectTransform == null)
+            return;
 
-        if (rectTransform.localScale.x <= minSize.x)
-            target = maxSize;
+        _rectTransform.localScale = Vector3.MoveTowards(_rectTransform.localScale, _target, speed * Time.deltaTime);
 
-        if (rectTransform.localScale.x >= maxSize.x)
-            target = minSize;
+        if (_rectTransform.localScale.x <= minSize.x)
+            _target = maxSize;
+        else if (_rectTransform.localScale.x >= maxSize.x)
+            _target = minSize;
     }
 }

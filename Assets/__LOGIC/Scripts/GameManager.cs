@@ -7,7 +7,27 @@ public class GameManager : MonoBehaviour
     private const int GridSize = 5;
     private const int GridCellCount = GridSize * GridSize;
 
-    public static GameManager Instance;
+    private static readonly int[][] DiagonalGroups = new int[][]
+    {
+        // Direita
+        new[] { 15, 21 },
+        new[] { 10, 16, 22 },
+        new[] { 5, 11, 17, 23 },
+        new[] { 0, 6, 12, 18, 24 },
+        new[] { 1, 7, 13, 19 },
+        new[] { 2, 8, 14 },
+        new[] { 3, 9 },
+        // Esquerda
+        new[] { 1, 5 },
+        new[] { 2, 6, 10 },
+        new[] { 3, 7, 11, 15 },
+        new[] { 4, 8, 12, 16, 20 },
+        new[] { 9, 13, 17, 21 },
+        new[] { 14, 18, 22 },
+        new[] { 19, 23 }
+    };
+
+    public static GameManager Instance { get; private set; }
 
     [Header("Scenes")]
     public GameObject Menu;
@@ -47,39 +67,49 @@ public class GameManager : MonoBehaviour
 
     public Color? CurrentColor { get; set; } = null;
 
+    private SceneMovement sceneMovement = null;
+    private readonly HashSet<Color> _colorCheckBuffer = new HashSet<Color>();
+
     public void Awake()
     {
-
-#if UNITY_STANDALONE
+#if UNITY_STANDALONE && !UNITY_EDITOR
         Screen.SetResolution(360, 720, false);
 #endif
 
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
         Screen.SetResolution(280, 560, false);
-#endif
-
-#if UNITY_EDITOR
-        Screen.SetResolution(720, 1460, false);
 #endif
 
         Instance = this;
         Hide(Game);
         Hide(Score);
         Hide(Credits);
-        Menu.SetActive(true);
-        AddScore.SetActive(false);
-        BackButton.SetActive(false);
-        BackButton2.SetActive(false);
-        Menu.GetComponent<CanvasGroup>().interactable = true;
-        Game.GetComponent<CanvasGroup>().interactable = false;
-        Score.GetComponent<CanvasGroup>().interactable = false;
-        Credits.GetComponent<CanvasGroup>().interactable = false;
+        
+        if (Menu != null) Menu.SetActive(true);
+        if (AddScore != null) AddScore.SetActive(false);
+        if (BackButton != null) BackButton.SetActive(false);
+        if (BackButton2 != null) BackButton2.SetActive(false);
+
+        SetCanvasGroupInteractable(Menu, true);
+        SetCanvasGroupInteractable(Game, false);
+        SetCanvasGroupInteractable(Score, false);
+        SetCanvasGroupInteractable(Credits, false);
+    }
+
+    private void SetCanvasGroupInteractable(GameObject target, bool interactable)
+    {
+        if (target != null)
+        {
+            var cg = target.GetComponent<CanvasGroup>();
+            if (cg != null)
+                cg.interactable = interactable;
+        }
     }
 
     public void StartGame()
     {
         _time = 0;
-        Relogio.text = "0";
+        if (Relogio != null) Relogio.text = "0";
         ChangeCurrentColor(Color.white);
         Paused = false;
     }
@@ -87,14 +117,14 @@ public class GameManager : MonoBehaviour
     public void StopGame()
     {
         _time = 0;
-        Relogio.text = "0";
-        Paleta.enabled = true;
+        if (Relogio != null) Relogio.text = "0";
+        if (Paleta != null) Paleta.enabled = true;
     }
 
     private void _resetGame()
     {
         ClearAll();
-        Relogio.text = "0";
+        if (Relogio != null) Relogio.text = "0";
         _time = 0;
         ChangeCurrentColor(Color.white);
     }
@@ -103,48 +133,54 @@ public class GameManager : MonoBehaviour
     {
         if (HasWhite())
             return;
+
         CheckResult result = CheckAll();
-        //Debug.Log(result.IsSuccessful);
-        //Debug.Log(result.Errors.Count);
         if (result.IsSuccessful)
         {
-            //TODO: Cabou
-            //Debug.Log("cabou");
-            _time = float.Parse(Relogio.text);
-            ScoreText.text = Relogio.text + " segundos";
-            AddScore.SetActive(true);
+            int elapsedSeconds = Mathf.FloorToInt(_time);
+            if (ScoreText != null)
+                ScoreText.text = $"{elapsedSeconds} segundos";
+            if (AddScore != null)
+                AddScore.SetActive(true);
             Paused = true;
         }
         else
         {
-            foreach(int id in result.Errors)
+            foreach (int id in result.Errors)
             {
-                Images[id].IndicaErro();
-                Erro.Show();
+                if (id >= 0 && id < Images.Count && Images[id] != null)
+                    Images[id].IndicaErro();
             }
+            if (Erro != null)
+                Erro.Show();
         }
-        //TODO: result.Errors -> Ids que estão errados
     }
 
     public void AddNewScore()
     {
-        string nome = Nome.text;
+        string nome = Nome != null ? Nome.text : string.Empty;
         if (!string.IsNullOrWhiteSpace(nome))
-            NetworkedScore.Instance.PushScore(nome, Mathf.FloorToInt(_time));
+        {
+            NetworkedScore.Instance?.PushScore(nome, Mathf.FloorToInt(_time));
+        }
         CloseAddScore();
     }
 
     public void CloseAddScore()
     {
-        AddScore.SetActive(false);
+        if (AddScore != null)
+            AddScore.SetActive(false);
         GoTo(Menu);
     }
 
     private bool HasWhite()
     {
-        foreach (Paintable paintable in Images)
-            if (paintable.color == Color.white)
+        for (int i = 0; i < Images.Count; i++)
+        {
+            var paintable = Images[i];
+            if (paintable != null && paintable.color == Color.white)
                 return true;
+        }
         return false;
     }
 
@@ -153,69 +189,54 @@ public class GameManager : MonoBehaviour
         HashSet<int> errors = new HashSet<int>();
         for (int i = 0; i < GridSize; i++)
         {
-            CheckRow(i, ref errors);
-            CheckColumn(i, ref errors);
+            CheckRow(i, errors);
+            CheckColumn(i, errors);
         }
-        //Diagonais
-        List<int[]> groups = new List<int[]>
+
+        for (int i = 0; i < DiagonalGroups.Length; i++)
         {
-            //Direita
-            new[] { 15, 21 },
-            new[] { 10, 16, 22 },
-            new[] { 5, 11, 17, 23 },
-            new[] { 0, 6, 12, 18, 24 },
-            new[] { 1, 7, 13, 19 },
-            new[] { 2, 8, 14 },
-            new[] { 3, 9 },
-            //Esquerda
-            new[] { 1, 5 },
-            new[] { 2, 6, 10 },
-            new[] { 3, 7, 11, 15 },
-            new[] { 4, 8, 12, 16, 20 },
-            new[] { 9, 13, 17, 21 },
-            new[] { 14, 18, 22 },
-            new[] { 19, 23 }
-        };
-        foreach (int[] group in groups)
-            CheckGroup(group, ref errors);
+            CheckGroup(DiagonalGroups[i], errors);
+        }
+
         return new CheckResult(errors);
     }
 
-    private void CheckRow(int row, ref HashSet<int> errors)
+    private void CheckRow(int row, HashSet<int> errors)
     {
-        List<Color> colors = new List<Color>();
+        _colorCheckBuffer.Clear();
         int start = row * GridSize;
         int end = start + GridSize;
         for (int i = start; i < end; i++)
         {
+            if (i >= Images.Count || Images[i] == null) continue;
             Paintable image = Images[i];
-            if (colors.Contains(image.color))
+            if (!_colorCheckBuffer.Add(image.color))
                 errors.Add(i);
-            colors.Add(image.color);
         }
     }
 
-    private void CheckColumn(int column, ref HashSet<int> errors)
+    private void CheckColumn(int column, HashSet<int> errors)
     {
-        List<Color> colors = new List<Color>();
+        _colorCheckBuffer.Clear();
         for (int i = column; i < GridCellCount; i += GridSize)
         {
+            if (i >= Images.Count || Images[i] == null) continue;
             Paintable image = Images[i];
-            if (colors.Contains(image.color))
+            if (!_colorCheckBuffer.Add(image.color))
                 errors.Add(i);
-            colors.Add(image.color);
         }
     }
 
-    private void CheckGroup(int[] arr, ref HashSet<int> errors)
+    private void CheckGroup(int[] arr, HashSet<int> errors)
     {
-        List<Color> colors = new List<Color>();
-        foreach (int n in arr)
+        _colorCheckBuffer.Clear();
+        for (int k = 0; k < arr.Length; k++)
         {
+            int n = arr[k];
+            if (n >= Images.Count || Images[n] == null) continue;
             Paintable image = Images[n];
-            if (colors.Contains(image.color))
+            if (!_colorCheckBuffer.Add(image.color))
                 errors.Add(n);
-            colors.Add(image.color);
         }
     }
 
@@ -224,61 +245,59 @@ public class GameManager : MonoBehaviour
         Application.Quit();
     }
 
-    public void GoToMenu()
-        => GoTo(Menu);
-
-    public void GoToGame()
-        => GoTo(Game);
-
-    public void GoToScore()
-        => GoTo(Score);
-
-    public void GoToCredits()
-        => GoTo(Credits);
+    public void GoToMenu() => GoTo(Menu);
+    public void GoToGame() => GoTo(Game);
+    public void GoToScore() => GoTo(Score);
+    public void GoToCredits() => GoTo(Credits);
 
     private void GoTo(GameObject scene)
     {
+        if (scene == null) return;
+
         GameObject current = GetCurrentScene();
         if (current == scene)
             return;
+
         if (current == Game)
         {
-            StopGameEvent.Invoke();
+            StopGameEvent?.Invoke();
             _resetGame();
         }
-        else if(scene == Game){
-            StartGameEvent.Invoke();
+        else if (scene == Game)
+        {
+            StartGameEvent?.Invoke();
         }
 
-        //current.GetComponent<CanvasGroup>().interactable = false;
-        BackButton.SetActive(false);
-        BackButton2.SetActive(false);
-        QuitButton.SetActive(false);
+        if (BackButton != null) BackButton.SetActive(false);
+        if (BackButton2 != null) BackButton2.SetActive(false);
+        if (QuitButton != null) QuitButton.SetActive(false);
+        
         scene.SetActive(true);
         Fade(current, scene, Canvas);
     }
 
-    SceneMovement sceneMovement = null;
     private void Fade(GameObject sceneToHide, GameObject sceneToShow, GameObject allScenes)
     {
+        if (sceneToHide == null || sceneToShow == null || allScenes == null)
+            return;
         sceneMovement = new SceneMovement(sceneToHide, sceneToShow, allScenes);
     }
 
     private GameObject GetCurrentScene()
     {
-        if (Menu.activeSelf)
+        if (Menu != null && Menu.activeSelf)
             return Menu;
-        if (Game.activeSelf)
+        if (Game != null && Game.activeSelf)
             return Game;
-        if (Score.activeSelf)
+        if (Score != null && Score.activeSelf)
             return Score;
         return Credits;
     }
 
-    private void Hide(GameObject gameObject)
+    private void Hide(GameObject target)
     {
-        //gameObject.transform.position = OutBase.transform.position;
-        gameObject.SetActive(false);
+        if (target != null)
+            target.SetActive(false);
     }
 
     public void Update()
@@ -286,12 +305,12 @@ public class GameManager : MonoBehaviour
         if (!Paused)
         {
             _time += Time.deltaTime;
-            Relogio.text = $"{Mathf.FloorToInt(_time)}";
+            if (Relogio != null)
+                Relogio.text = $"{Mathf.FloorToInt(_time)}";
         }
 
         if (sceneMovement != null)
         {
-            
             float deltaTime = Time.deltaTime;
             sceneMovement.CurTime += deltaTime;
             Vector3 move = (deltaTime / sceneMovement.TotalTime) * sceneMovement.TotalMove;
@@ -303,21 +322,32 @@ public class GameManager : MonoBehaviour
                 sceneMovement.CurMove = sceneMovement.TotalMove;
             }
             else
+            {
                 sceneMovement.CurMove += move;
-            sceneMovement.ScenesTransform.position = sceneMovement.ScenesTransform.position - move;
+            }
+
+            if (sceneMovement.ScenesTransform != null)
+                sceneMovement.ScenesTransform.position = sceneMovement.ScenesTransform.position - move;
 
             if (sceneMovement.CurTime >= sceneMovement.TotalTime)
             {
-                sceneMovement.NextScene.GetComponent<CanvasGroup>().interactable = true;
+                SetCanvasGroupInteractable(sceneMovement.NextScene, true);
+
                 if (sceneMovement.NextScene == Menu)
-                    QuitButton.SetActive(true);
+                {
+                    if (QuitButton != null) QuitButton.SetActive(true);
+                }
+                else if (sceneMovement.NextScene == Score)
+                {
+                    if (BackButton2 != null) BackButton2.SetActive(true);
+                }
                 else
-                    if(sceneMovement.NextScene == Score)
-                        BackButton2.SetActive(true);
-                    else
-                        BackButton.SetActive(true);
+                {
+                    if (BackButton != null) BackButton.SetActive(true);
+                }
+
                 Hide(sceneMovement.CurrentScene);
-                sceneMovement.NextScene.GetComponent<ISceneManager>()?.Ready();
+                sceneMovement.NextScene?.GetComponent<ISceneManager>()?.Ready();
                 sceneMovement = null;
             }
         }
@@ -325,13 +355,7 @@ public class GameManager : MonoBehaviour
 
     public class CheckResult
     {
-        public bool IsSuccessful
-        {
-            get
-            {
-                return Errors.Count == 0;
-            }
-        }
+        public bool IsSuccessful => Errors.Count == 0;
         public HashSet<int> Errors { get; }
 
         public CheckResult(HashSet<int> errors)
@@ -342,25 +366,29 @@ public class GameManager : MonoBehaviour
 
     public void ChangeCurrentColor(Color c)
     {
-        Brush.color = c;
+        if (Brush != null)
+            Brush.color = c;
         CurrentColor = c;
     }
 
     public void ClearAll()
     {
-        foreach (Paintable p in Images)
-            p.Clear();
+        for (int i = 0; i < Images.Count; i++)
+        {
+            if (Images[i] != null)
+                Images[i].Clear();
+        }
     }
 
     public class SceneMovement
     {
         public GameObject CurrentScene { get; }
         public GameObject NextScene { get; }
-        public GameObject AllScene { get;  }
+        public GameObject AllScene { get; }
 
-        public Transform ShowTransform { get { return NextScene.transform; } }
-        public Transform HideTransform { get { return CurrentScene.transform; } }
-        public Transform ScenesTransform { get { return AllScene.transform; } }
+        public Transform ShowTransform => NextScene != null ? NextScene.transform : null;
+        public Transform HideTransform => CurrentScene != null ? CurrentScene.transform : null;
+        public Transform ScenesTransform => AllScene != null ? AllScene.transform : null;
 
         public Vector3 TotalMove { get; }
         public Vector3 CurMove { get; set; }
@@ -372,7 +400,9 @@ public class GameManager : MonoBehaviour
             CurrentScene = currentScene;
             NextScene = nextScene;
             AllScene = allScenes;
-            TotalMove = ShowTransform.position - HideTransform.position;
+            TotalMove = (ShowTransform != null && HideTransform != null) 
+                ? ShowTransform.position - HideTransform.position 
+                : Vector3.zero;
 
             CurMove = Vector3.zero;
             TotalTime = 0.65f;

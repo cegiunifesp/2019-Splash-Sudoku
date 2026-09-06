@@ -18,25 +18,58 @@ public class ScoreSceneManager : MonoBehaviour, ISceneManager
 
     public void LoadRanking()
     {
-        if (Loading.activeSelf)
+        if (Loading != null && Loading.activeSelf)
             return;
-        Loading.SetActive(true);
-        NetworkedScore.Instance.GetScores(10, entries =>
+
+        if (Loading != null)
+            Loading.SetActive(true);
+
+        if (RankingList != null)
         {
-            int i = 0;
-            foreach (NetworkedScoreEntry entry in entries)
-                AddScore(++i, entry.Name, entry.Score);
-        });
-        Loading.SetActive(false);
+            foreach (Transform child in RankingList.transform)
+            {
+                Destroy(child.gameObject);
+            }
+        }
+
+        if (NetworkedScore.Instance != null)
+        {
+            NetworkedScore.Instance.GetScores(10, entries =>
+            {
+                if (entries != null)
+                {
+                    int i = 0;
+                    foreach (NetworkedScoreEntry entry in entries)
+                    {
+                        AddScore(++i, entry.Name, entry.Score);
+                    }
+                }
+
+                if (Loading != null)
+                    Loading.SetActive(false);
+            });
+        }
+        else
+        {
+            if (Loading != null)
+                Loading.SetActive(false);
+        }
     }
 
     private void AddScore(int pos, string nome, string tempo)
     {
+        if (ScoreBase == null || RankingList == null)
+            return;
+
         GameObject score = Instantiate(ScoreBase, RankingList.transform, false);
         var scoreObj = score.GetComponent<ScoreObject>();
-        scoreObj.Posicao.text = pos.ToString();
-        scoreObj.Nome.text = nome;
-        scoreObj.Score.text = tempo;
-        score.SetActive(true);
+
+        if (scoreObj == null)
+        {
+            Debug.LogError("O prefab ScoreBase não possui o componente ScoreObject anexado!");
+            return;
+        }
+
+        scoreObj.Init(pos.ToString(), nome, tempo);
     }
 }

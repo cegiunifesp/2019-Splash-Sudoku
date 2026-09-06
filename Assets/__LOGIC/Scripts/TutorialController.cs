@@ -11,6 +11,8 @@ public class TutorialController : MonoBehaviour
     [SerializeField] private CanvasGroup pickCanvasGroup, paintCanvasGroup01, paintCanvasGroup02, finalInstruction;
     [SerializeField] private float fadeDuration = 0.5f;
 
+    private Coroutine m_TutorialCoroutine;
+
     private void Awake()
     {
         ResetCanvases();
@@ -18,45 +20,64 @@ public class TutorialController : MonoBehaviour
 
     private void ResetCanvases()
     {
-        pickCanvasGroup.alpha = 0;
-        paintCanvasGroup01.alpha = 0;
-        paintCanvasGroup02.alpha = 0;
-        finalInstruction.alpha = 0;
-
-        pickCanvasGroup.blocksRaycasts = false;
-        paintCanvasGroup01.blocksRaycasts = false;
-        paintCanvasGroup02.blocksRaycasts = false;
-        finalInstruction.blocksRaycasts = false;
+        SetCanvasGroupState(pickCanvasGroup, 0f, false, false);
+        SetCanvasGroupState(paintCanvasGroup01, 0f, false, false);
+        SetCanvasGroupState(paintCanvasGroup02, 0f, false, false);
+        SetCanvasGroupState(finalInstruction, 0f, false, false);
 
         pickedColor = false;
         painted = false;
     }
 
+    private void SetCanvasGroupState(CanvasGroup group, float alpha, bool interactable, bool blocksRaycasts)
+    {
+        if (group != null)
+        {
+            group.alpha = alpha;
+            group.interactable = interactable;
+            group.blocksRaycasts = blocksRaycasts;
+        }
+    }
+
     public void StartTutorial()
     {
-        if (m_ShowTutorial)
-            StartCoroutine(TutorialSteps());
+        if (m_ShowTutorial && m_TutorialCoroutine == null)
+        {
+            m_TutorialCoroutine = StartCoroutine(TutorialSteps());
+        }
     }
 
     public IEnumerator TutorialSteps()
     {
         yield return new WaitForSeconds(1.8f);
 
-        // Force reset the triggers here to ignore GameManager's initial setup
+        // Force reset triggers to ignore initial setup
         pickedColor = false; 
         painted = false;
 
-        // Passos 1 e 2 (Textos flutuantes - não bloqueiam cliques)
+        // Steps 1 & 2 (Floating hints - do not block clicks)
         yield return StartCoroutine(Fade(1f, pickCanvasGroup));
 
-        foreach (Animator anim in m_ColorPickers)
-            anim.SetBool("Tutorial", true);
+        if (m_ColorPickers != null)
+        {
+            foreach (Animator anim in m_ColorPickers)
+            {
+                if (anim != null)
+                    anim.SetBool("Tutorial", true);
+            }
+        }
 
         while (!pickedColor)
             yield return null;
 
-        foreach (Animator anim in m_ColorPickers)
-            anim.SetBool("Tutorial", false);
+        if (m_ColorPickers != null)
+        {
+            foreach (Animator anim in m_ColorPickers)
+            {
+                if (anim != null)
+                    anim.SetBool("Tutorial", false);
+            }
+        }
 
         StartCoroutine(Fade(0f, pickCanvasGroup));
         StartCoroutine(Fade(1f, paintCanvasGroup01));
@@ -70,24 +91,34 @@ public class TutorialController : MonoBehaviour
 
         yield return new WaitForSeconds(1f);
 
-        // Passo 3 (Painel de regras - BLOQUEIA o fundo e ativa o botão)
-        finalInstruction.blocksRaycasts = true;
-        finalInstruction.interactable = true;
+        // Step 3 (Rules panel - blocks background and enables button)
+        if (finalInstruction != null)
+        {
+            finalInstruction.blocksRaycasts = true;
+            finalInstruction.interactable = true;
+        }
         yield return StartCoroutine(Fade(1f, finalInstruction));
+
+        m_TutorialCoroutine = null;
     }
 
     public IEnumerator Fade(float targetAlpha, CanvasGroup group)
     {
-        float step = Mathf.Abs(targetAlpha - group.alpha) / fadeDuration;
+        if (group == null)
+            yield break;
 
-        while(!Mathf.Approximately(group.alpha, targetAlpha))
+        float effectiveDuration = Mathf.Max(0.01f, fadeDuration);
+        float step = Mathf.Abs(targetAlpha - group.alpha) / effectiveDuration;
+
+        while (!Mathf.Approximately(group.alpha, targetAlpha))
         {
             group.alpha = Mathf.MoveTowards(group.alpha, targetAlpha, step * Time.deltaTime);
             yield return null;
         }
 
-        // Desativa o bloqueio APENAS quando o painel fica 100% invisível
-        if (targetAlpha == 0)
+        group.alpha = targetAlpha;
+
+        if (targetAlpha == 0f)
         {
             group.blocksRaycasts = false;
             group.interactable = false;
@@ -96,12 +127,24 @@ public class TutorialController : MonoBehaviour
 
     public void FinishTutorial()
     {
+        if (m_TutorialCoroutine != null)
+        {
+            StopCoroutine(m_TutorialCoroutine);
+            m_TutorialCoroutine = null;
+        }
+
         StartCoroutine(Fade(0f, finalInstruction));
         m_ShowTutorial = false;
     }
 
     public void StopTutorial()
     {
+        if (m_TutorialCoroutine != null)
+        {
+            StopCoroutine(m_TutorialCoroutine);
+            m_TutorialCoroutine = null;
+        }
+
         StopAllCoroutines();
         ResetCanvases();
     }

@@ -1,60 +1,57 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
-public class ErrorMessage : MonoBehaviour {
-
+public class ErrorMessage : MonoBehaviour
+{
     private bool _show;
-    private float _duration = 1;
+    private float _duration = 1f;
     private float _cur_time;
 
     public Image fundo;
     public Text texto;
 
-	// Use this for initialization
-	void Start () {
+    private void Start()
+    {
+        _cur_time = 0f;
+        SetAlpha(0f);
+    }
 
-        _cur_time = 0;
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-
-
-        if ((_show) && (_cur_time < _duration))
+    private void Update()
+    {
+        if (_show && _cur_time < _duration)
         {
             _cur_time += Time.deltaTime;
-
-            _paintChildren(_cur_time / _duration);
-
-
+            SetAlpha(Mathf.Clamp01(_cur_time / _duration));
         }
-        else if ((_show) && (_cur_time >= _duration))
+        else if (_show && _cur_time >= _duration)
         {
             _cur_time += Time.deltaTime;
-
-            if (_cur_time > 4 * _duration)
+            if (_cur_time > 4f * _duration)
             {
                 _show = false;
                 _cur_time = _duration;
             }
         }
-        else if ((!_show) && (_cur_time > 0))
+        else if (!_show && _cur_time > 0f)
         {
             _cur_time -= Time.deltaTime;
-            _paintChildren(_cur_time / _duration);
+            SetAlpha(Mathf.Clamp01(_cur_time / _duration));
         }
-
-
     }
 
-    void _paintChildren(float alpha)
+    private void SetAlpha(float alpha)
     {
-        fundo.color = new Color(fundo.color.r, fundo.color.g, fundo.color.b,alpha);
-        texto.color = new Color(texto.color.r, texto.color.g, texto.color.b, alpha);
+        if (fundo != null)
+        {
+            Color c = fundo.color;
+            fundo.color = new Color(c.r, c.g, c.b, alpha);
+        }
 
+        if (texto != null)
+        {
+            Color c = texto.color;
+            texto.color = new Color(c.r, c.g, c.b, alpha);
+        }
     }
 
     public void Show()

@@ -1,4 +1,4 @@
-﻿interface ISceneManager
+﻿public interface ISceneManager
 {
     void Ready();
 }

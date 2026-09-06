@@ -1,29 +1,33 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 public class PaintBall : MonoBehaviour
 {
     private Paintable _parent;
+    private Image _image;
 
-    // Use this for initialization
+    private void Awake()
+    {
+        _image = GetComponent<Image>();
+    }
+
     public void SetParent(Paintable p)
     {
         _parent = p;
 
         GameManager gm = GameManager.Instance;
-        Color? currentColor = gm.CurrentColor;
-        if (currentColor.HasValue)
+        if (gm != null && gm.CurrentColor.HasValue && _image != null)
         {
-            this.GetComponent<Image>().color = currentColor.Value;
+            _image.color = gm.CurrentColor.Value;
         }
     }
 
-
     public void HitCanvas()
     {
-        _parent.HitBall();
+        if (_parent != null)
+        {
+            _parent.HitBall();
+        }
         Destroy(gameObject);
     }
 }

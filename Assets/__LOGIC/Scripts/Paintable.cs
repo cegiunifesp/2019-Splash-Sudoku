@@ -7,62 +7,84 @@ public class Paintable : MonoBehaviour, IPointerDownHandler, IPointerEnterHandle
     public GameObject paintBall;
     public GameObject splash;
     public GameObject cor;
-    private SplashMark Mark { get { return cor.GetComponent<SplashMark>(); } }
-    private Animator Animator { get { return this.GetComponent<Animator>(); } }
     public Sprite mancha;
     public Color color = Color.white;
 
+    private SplashMark m_Mark;
+    private Animator m_Animator;
     private Image m_Image;
-
-    private TutorialController tutorial;
+    private TutorialController m_Tutorial;
 
     private void Awake()
     {
-        tutorial = FindObjectOfType<TutorialController>();
         m_Image = GetComponent<Image>();
+        m_Animator = GetComponent<Animator>();
+        if (cor != null)
+        {
+            m_Mark = cor.GetComponent<SplashMark>();
+        }
+        m_Tutorial = FindObjectOfType<TutorialController>();
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
         GameManager gm = GameManager.Instance;
-
-        if (gm.Paused)
+        if (gm == null || gm.Paused)
             return;
 
         if (gm.CurrentColor.HasValue)
         {
-
-
-            if (gm.CurrentColor == Color.white)
+            if (gm.CurrentColor.Value == Color.white)
+            {
                 Clear();
+            }
             else
             {
                 transform.SetAsLastSibling();
-                Instantiate(paintBall, transform).GetComponent<PaintBall>().SetParent(this);
-                Animator.SetBool("Shake", false);
-                tutorial.painted = true;
+                if (paintBall != null)
+                {
+                    GameObject ballObj = Instantiate(paintBall, transform);
+                    PaintBall ball = ballObj.GetComponent<PaintBall>();
+                    if (ball != null)
+                        ball.SetParent(this);
+                }
+
+                if (m_Animator != null)
+                    m_Animator.SetBool("Shake", false);
+
+                if (m_Tutorial != null)
+                    m_Tutorial.painted = true;
             }
         }
     }
 
     public void Blink(bool onOff)
     {
-
     }
 
     public void HitBall()
     {
         transform.SetAsLastSibling();
-        Instantiate(splash, transform).GetComponent<SplashHit>().SetParent(this);
+        if (splash != null)
+        {
+            GameObject splashObj = Instantiate(splash, transform);
+            SplashHit hit = splashObj.GetComponent<SplashHit>();
+            if (hit != null)
+                hit.SetParent(this);
+        }
     }
 
     public void Splash()
     {
         GameManager gm = GameManager.Instance;
+        if (gm == null) return;
+
         Color? currentColor = gm.CurrentColor;
         if (currentColor.HasValue)
         {
-            Mark.Splash(currentColor.Value);
+            if (m_Mark != null)
+                m_Mark.Splash(currentColor.Value);
+
             color = currentColor.Value;
             gm.CheckColors();
         }
@@ -70,29 +92,33 @@ public class Paintable : MonoBehaviour, IPointerDownHandler, IPointerEnterHandle
 
     public void Clear()
     {
-        Mark.Clean();
-        color = Color.white;
-        Animator.SetBool("Shake", false);
-    }
+        if (m_Mark != null)
+            m_Mark.Clean();
 
+        color = Color.white;
+
+        if (m_Animator != null)
+            m_Animator.SetBool("Shake", false);
+    }
 
     public void IndicaErro()
     {
-        Animator.SetBool("Shake", true);
+        if (m_Animator != null)
+            m_Animator.SetBool("Shake", true);
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         GameManager gm = GameManager.Instance;
-
-        if (gm.CurrentColor.HasValue)
+        if (gm != null && gm.CurrentColor.HasValue && m_Image != null)
         {
-            m_Image.color = Color.Lerp(Color.white, (Color)gm.CurrentColor, 0.2f);
+            m_Image.color = Color.Lerp(Color.white, gm.CurrentColor.Value, 0.2f);
         }
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        m_Image.color = Color.white;
+        if (m_Image != null)
+            m_Image.color = Color.white;
     }
 }

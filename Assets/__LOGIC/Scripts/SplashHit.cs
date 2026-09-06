@@ -1,17 +1,27 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
-public class SplashHit : MonoBehaviour {
-
+public class SplashHit : MonoBehaviour
+{
     private Paintable _parent;
+    private Image _image;
 
-
-    void Start()
+    private void Awake()
     {
-        GameObject.FindGameObjectWithTag("Audio").GetComponent<AudioSource>().Play();
-        transform.Rotate(new Vector3(0,0,Random.Range(-100,100)));
+        _image = GetComponent<Image>();
+    }
+
+    private void Start()
+    {
+        GameObject audioObj = GameObject.FindGameObjectWithTag("Audio");
+        if (audioObj != null)
+        {
+            AudioSource audioSource = audioObj.GetComponent<AudioSource>();
+            if (audioSource != null)
+                audioSource.Play();
+        }
+
+        transform.Rotate(new Vector3(0, 0, Random.Range(-100f, 100f)));
     }
 
     public void SetParent(Paintable p)
@@ -19,10 +29,9 @@ public class SplashHit : MonoBehaviour {
         _parent = p;
 
         GameManager gm = GameManager.Instance;
-        Color? currentColor = gm.CurrentColor;
-        if (currentColor.HasValue)
+        if (gm != null && gm.CurrentColor.HasValue && _image != null)
         {
-            this.GetComponent<Image>().color = currentColor.Value;
+            _image.color = gm.CurrentColor.Value;
         }
     }
 
@@ -33,6 +42,9 @@ public class SplashHit : MonoBehaviour {
 
     public void CallParent()
     {
-        _parent.Splash();
+        if (_parent != null)
+        {
+            _parent.Splash();
+        }
     }
 }

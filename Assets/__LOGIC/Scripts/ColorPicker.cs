@@ -8,32 +8,42 @@ public class ColorPicker : MonoBehaviour, IPointerClickHandler, IPointerEnterHan
 
     private TutorialController tutController;
     private Animator m_Animator;
+    private Image m_Image;
 
     public void Awake()
     {
-        this.GetComponent<Image>().color = Color;
+        m_Image = GetComponent<Image>();
+        if (m_Image != null)
+            m_Image.color = Color;
+
         tutController = FindObjectOfType<TutorialController>();
         m_Animator = GetComponent<Animator>();
     }
 
     private void OnEnable()
     {
-        tutController.StartTutorial();
+        if (tutController != null)
+            tutController.StartTutorial();
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        GameManager.Instance.ChangeCurrentColor(Color);
-        tutController.pickedColor = true;
+        if (GameManager.Instance != null)
+            GameManager.Instance.ChangeCurrentColor(Color);
+
+        if (tutController != null)
+            tutController.pickedColor = true;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        m_Animator.SetBool("Selected", true);
+        if (m_Animator != null)
+            m_Animator.SetBool("Selected", true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        m_Animator.SetBool("Selected", false);
+        if (m_Animator != null)
+            m_Animator.SetBool("Selected", false);
     }
 }
