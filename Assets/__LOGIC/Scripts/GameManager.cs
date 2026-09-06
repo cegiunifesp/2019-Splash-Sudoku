@@ -79,6 +79,8 @@ public class GameManager : MonoBehaviour
     [FormerlySerializedAs("Relogio")]
     public TextMeshProUGUI timerText;
 
+    public Text timerLegacyText;
+
     [FormerlySerializedAs("Paleta")]
     public Animator paletteAnimator;
 
@@ -161,10 +163,18 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void UpdateTimerDisplay(string value)
+    {
+        if (timerText != null)
+            timerText.text = value;
+        if (timerLegacyText != null)
+            timerLegacyText.text = value;
+    }
+
     public void StartGame()
     {
         _elapsedTime = 0f;
-        if (timerText != null) timerText.text = "0";
+        UpdateTimerDisplay("0");
         ChangeCurrentColor(Color.white);
         isPaused = false;
 
@@ -182,7 +192,7 @@ public class GameManager : MonoBehaviour
     public void StartTimer()
     {
         _elapsedTime = 0f;
-        if (timerText != null) timerText.text = "0";
+        UpdateTimerDisplay("0");
         _isTimerRunning = true;
     }
 
@@ -195,14 +205,14 @@ public class GameManager : MonoBehaviour
     {
         _elapsedTime = 0f;
         _isTimerRunning = false;
-        if (timerText != null) timerText.text = "0";
+        UpdateTimerDisplay("0");
         if (paletteAnimator != null) paletteAnimator.enabled = true;
     }
 
     public void ResetGame()
     {
         ClearAll();
-        if (timerText != null) timerText.text = "0";
+        UpdateTimerDisplay("0");
         _elapsedTime = 0f;
         _isTimerRunning = false;
         ChangeCurrentColor(Color.white);
@@ -392,8 +402,7 @@ public class GameManager : MonoBehaviour
         if (!isPaused && _isTimerRunning)
         {
             _elapsedTime += Time.deltaTime;
-            if (timerText != null)
-                timerText.text = $"{Mathf.FloorToInt(_elapsedTime)}";
+            UpdateTimerDisplay($"{Mathf.FloorToInt(_elapsedTime)}");
         }
 
         if (_sceneMovement != null)
