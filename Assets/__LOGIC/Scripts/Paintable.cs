@@ -1,35 +1,50 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class Paintable : MonoBehaviour, IPointerDownHandler, IPointerEnterHandler, IPointerExitHandler
 {
-    public GameObject paintBall;
-    public GameObject splash;
-    public GameObject cor;
-    public Sprite mancha;
+    [FormerlySerializedAs("paintBall")]
+    public GameObject paintBallPrefab;
+
+    [FormerlySerializedAs("splash")]
+    public GameObject splashPrefab;
+
+    [FormerlySerializedAs("cor")]
+    public GameObject splashMarkObject;
+
+    [FormerlySerializedAs("mancha")]
+    public Sprite splashSprite;
+
     public Color color = Color.white;
 
-    private SplashMark m_Mark;
-    private Animator m_Animator;
-    private Image m_Image;
-    private TutorialController m_Tutorial;
+    // Backward compatibility aliases
+    public GameObject paintBall => paintBallPrefab;
+    public GameObject splash => splashPrefab;
+    public GameObject cor => splashMarkObject;
+    public Sprite mancha => splashSprite;
+
+    private SplashMark _splashMark;
+    private Animator _animator;
+    private Image _cellImage;
+    private TutorialController _tutorialController;
 
     private void Awake()
     {
-        m_Image = GetComponent<Image>();
-        m_Animator = GetComponent<Animator>();
-        if (cor != null)
+        _cellImage = GetComponent<Image>();
+        _animator = GetComponent<Animator>();
+        if (splashMarkObject != null)
         {
-            m_Mark = cor.GetComponent<SplashMark>();
+            _splashMark = splashMarkObject.GetComponent<SplashMark>();
         }
-        m_Tutorial = FindObjectOfType<TutorialController>();
+        _tutorialController = FindObjectOfType<TutorialController>();
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
         GameManager gm = GameManager.Instance;
-        if (gm == null || gm.Paused)
+        if (gm == null || gm.IsPaused)
             return;
 
         if (gm.CurrentColor.HasValue)
@@ -41,33 +56,29 @@ public class Paintable : MonoBehaviour, IPointerDownHandler, IPointerEnterHandle
             else
             {
                 transform.SetAsLastSibling();
-                if (paintBall != null)
+                if (paintBallPrefab != null)
                 {
-                    GameObject ballObj = Instantiate(paintBall, transform);
+                    GameObject ballObj = Instantiate(paintBallPrefab, transform);
                     PaintBall ball = ballObj.GetComponent<PaintBall>();
                     if (ball != null)
                         ball.SetParent(this);
                 }
 
-                if (m_Animator != null)
-                    m_Animator.SetBool("Shake", false);
+                if (_animator != null)
+                    _animator.SetBool("Shake", false);
 
-                if (m_Tutorial != null)
-                    m_Tutorial.painted = true;
+                if (_tutorialController != null)
+                    _tutorialController.painted = true;
             }
         }
-    }
-
-    public void Blink(bool onOff)
-    {
     }
 
     public void HitBall()
     {
         transform.SetAsLastSibling();
-        if (splash != null)
+        if (splashPrefab != null)
         {
-            GameObject splashObj = Instantiate(splash, transform);
+            GameObject splashObj = Instantiate(splashPrefab, transform);
             SplashHit hit = splashObj.GetComponent<SplashHit>();
             if (hit != null)
                 hit.SetParent(this);
@@ -82,8 +93,8 @@ public class Paintable : MonoBehaviour, IPointerDownHandler, IPointerEnterHandle
         Color? currentColor = gm.CurrentColor;
         if (currentColor.HasValue)
         {
-            if (m_Mark != null)
-                m_Mark.Splash(currentColor.Value);
+            if (_splashMark != null)
+                _splashMark.Splash(currentColor.Value);
 
             color = currentColor.Value;
             gm.CheckColors();
@@ -92,33 +103,36 @@ public class Paintable : MonoBehaviour, IPointerDownHandler, IPointerEnterHandle
 
     public void Clear()
     {
-        if (m_Mark != null)
-            m_Mark.Clean();
+        if (_splashMark != null)
+            _splashMark.Clear();
 
         color = Color.white;
 
-        if (m_Animator != null)
-            m_Animator.SetBool("Shake", false);
+        if (_animator != null)
+            _animator.SetBool("Shake", false);
     }
 
-    public void IndicaErro()
+    public void ShowErrorFeedback()
     {
-        if (m_Animator != null)
-            m_Animator.SetBool("Shake", true);
+        if (_animator != null)
+            _animator.SetBool("Shake", true);
     }
+
+    // Backward compatibility alias
+    public void IndicaErro() => ShowErrorFeedback();
 
     public void OnPointerEnter(PointerEventData eventData)
     {
         GameManager gm = GameManager.Instance;
-        if (gm != null && gm.CurrentColor.HasValue && m_Image != null)
+        if (gm != null && gm.CurrentColor.HasValue && _cellImage != null)
         {
-            m_Image.color = Color.Lerp(Color.white, gm.CurrentColor.Value, 0.2f);
+            _cellImage.color = Color.Lerp(Color.white, gm.CurrentColor.Value, 0.2f);
         }
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (m_Image != null)
-            m_Image.color = Color.white;
+        if (_cellImage != null)
+            _cellImage.color = Color.white;
     }
 }

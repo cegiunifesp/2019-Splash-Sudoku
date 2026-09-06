@@ -1,62 +1,70 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Serialization;
 using TMPro;
 
 public class ErrorMessage : MonoBehaviour
 {
-    private bool _show;
+    private bool _isVisible;
     private float _duration = 1f;
-    private float _cur_time;
+    private float _currentTime;
 
-    public Image fundo;
-    public TextMeshProUGUI texto;
+    [FormerlySerializedAs("fundo")]
+    public Image backgroundImage;
+
+    [FormerlySerializedAs("texto")]
+    public TextMeshProUGUI messageText;
+
+    // Backward compatibility properties
+    public Image fundo => backgroundImage;
+    public TextMeshProUGUI texto => messageText;
 
     private void Start()
     {
-        _cur_time = 0f;
+        _currentTime = 0f;
         SetAlpha(0f);
     }
 
     private void Update()
     {
-        if (_show && _cur_time < _duration)
+        if (_isVisible && _currentTime < _duration)
         {
-            _cur_time += Time.deltaTime;
-            SetAlpha(Mathf.Clamp01(_cur_time / _duration));
+            _currentTime += Time.deltaTime;
+            SetAlpha(Mathf.Clamp01(_currentTime / _duration));
         }
-        else if (_show && _cur_time >= _duration)
+        else if (_isVisible && _currentTime >= _duration)
         {
-            _cur_time += Time.deltaTime;
-            if (_cur_time > 4f * _duration)
+            _currentTime += Time.deltaTime;
+            if (_currentTime > 4f * _duration)
             {
-                _show = false;
-                _cur_time = _duration;
+                _isVisible = false;
+                _currentTime = _duration;
             }
         }
-        else if (!_show && _cur_time > 0f)
+        else if (!_isVisible && _currentTime > 0f)
         {
-            _cur_time -= Time.deltaTime;
-            SetAlpha(Mathf.Clamp01(_cur_time / _duration));
+            _currentTime -= Time.deltaTime;
+            SetAlpha(Mathf.Clamp01(_currentTime / _duration));
         }
     }
 
     private void SetAlpha(float alpha)
     {
-        if (fundo != null)
+        if (backgroundImage != null)
         {
-            Color c = fundo.color;
-            fundo.color = new Color(c.r, c.g, c.b, alpha);
+            Color c = backgroundImage.color;
+            backgroundImage.color = new Color(c.r, c.g, c.b, alpha);
         }
 
-        if (texto != null)
+        if (messageText != null)
         {
-            Color c = texto.color;
-            texto.color = new Color(c.r, c.g, c.b, alpha);
+            Color c = messageText.color;
+            messageText.color = new Color(c.r, c.g, c.b, alpha);
         }
     }
 
     public void Show()
     {
-        _show = true;
+        _isVisible = true;
     }
 }

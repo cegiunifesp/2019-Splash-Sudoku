@@ -8,12 +8,12 @@ public class ElasticEffect : MonoBehaviour
     public Vector2 maxSize;
     public float speed = 0.05f;
 
-    private Vector2 _target;
+    private Vector2 _targetScale;
 
     private void Start()
     {
         _rectTransform = GetComponent<RectTransform>();
-        _target = minSize;
+        _targetScale = minSize;
     }
 
     private void Update()
@@ -21,11 +21,11 @@ public class ElasticEffect : MonoBehaviour
         if (_rectTransform == null)
             return;
 
-        _rectTransform.localScale = Vector3.MoveTowards(_rectTransform.localScale, _target, speed * Time.deltaTime);
+        _rectTransform.localScale = Vector3.MoveTowards(_rectTransform.localScale, _targetScale, speed * Time.deltaTime);
 
         if (_rectTransform.localScale.x <= minSize.x)
-            _target = maxSize;
+            _targetScale = maxSize;
         else if (_rectTransform.localScale.x >= maxSize.x)
-            _target = minSize;
+            _targetScale = minSize;
     }
 }

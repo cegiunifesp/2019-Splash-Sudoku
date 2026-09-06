@@ -3,30 +3,30 @@ using UnityEngine.UI;
 
 public class PaintBall : MonoBehaviour
 {
-    private Paintable _parent;
-    private Image _image;
+    private Paintable _parentPaintable;
+    private Image _ballImage;
 
     private void Awake()
     {
-        _image = GetComponent<Image>();
+        _ballImage = GetComponent<Image>();
     }
 
-    public void SetParent(Paintable p)
+    public void SetParent(Paintable parent)
     {
-        _parent = p;
+        _parentPaintable = parent;
 
         GameManager gm = GameManager.Instance;
-        if (gm != null && gm.CurrentColor.HasValue && _image != null)
+        if (gm != null && gm.CurrentColor.HasValue && _ballImage != null)
         {
-            _image.color = gm.CurrentColor.Value;
+            _ballImage.color = gm.CurrentColor.Value;
         }
     }
 
     public void HitCanvas()
     {
-        if (_parent != null)
+        if (_parentPaintable != null)
         {
-            _parent.HitBall();
+            _parentPaintable.HitBall();
         }
         Destroy(gameObject);
     }

@@ -3,13 +3,13 @@ using UnityEngine.UI;
 
 public class SplashMark : MonoBehaviour
 {
-    private Animator m_Animator;
-    private Image m_Image;
+    private Animator _animator;
+    private Image _markImage;
 
     private void Awake()
     {
-        m_Animator = GetComponent<Animator>();
-        m_Image = GetComponent<Image>();
+        _animator = GetComponent<Animator>();
+        _markImage = GetComponent<Image>();
     }
 
     private void Start()
@@ -17,25 +17,29 @@ public class SplashMark : MonoBehaviour
         transform.localScale = new Vector3(0, 0, 1);
     }
 
-    public void Clean()
+    public void Clear()
     {
-        if (m_Animator != null)
-            m_Animator.SetBool("Show", false);
+        if (_animator != null)
+            _animator.SetBool("Show", false);
     }
 
-    public void EndClean()
+    public void ResetRotation()
     {
         transform.eulerAngles = Vector3.zero;
     }
 
-    public void Splash(Color c)
+    public void Splash(Color splashColor)
     {
-        if (m_Image != null)
-            m_Image.color = c;
+        if (_markImage != null)
+            _markImage.color = splashColor;
 
         transform.Rotate(new Vector3(0, 0, Random.Range(-100f, 100f)));
 
-        if (m_Animator != null)
-            m_Animator.SetBool("Show", true);
+        if (_animator != null)
+            _animator.SetBool("Show", true);
     }
+
+    // Backward compatibility aliases
+    public void Clean() => Clear();
+    public void EndClean() => ResetRotation();
 }

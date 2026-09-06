@@ -1,49 +1,58 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 public class ColorPicker : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
 {
-    public Color Color;
+    [FormerlySerializedAs("Color")]
+    public Color pickerColor = Color.white;
 
-    private TutorialController tutController;
-    private Animator m_Animator;
-    private Image m_Image;
+    // Backward compatibility property
+    public Color Color
+    {
+        get => pickerColor;
+        set => pickerColor = value;
+    }
+
+    private TutorialController _tutorialController;
+    private Animator _animator;
+    private Image _pickerImage;
 
     public void Awake()
     {
-        m_Image = GetComponent<Image>();
-        if (m_Image != null)
-            m_Image.color = Color;
+        _pickerImage = GetComponent<Image>();
+        if (_pickerImage != null)
+            _pickerImage.color = pickerColor;
 
-        tutController = FindObjectOfType<TutorialController>();
-        m_Animator = GetComponent<Animator>();
+        _tutorialController = FindObjectOfType<TutorialController>();
+        _animator = GetComponent<Animator>();
     }
 
     private void OnEnable()
     {
-        if (tutController != null)
-            tutController.StartTutorial();
+        if (_tutorialController != null)
+            _tutorialController.StartTutorial();
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         if (GameManager.Instance != null)
-            GameManager.Instance.ChangeCurrentColor(Color);
+            GameManager.Instance.ChangeCurrentColor(pickerColor);
 
-        if (tutController != null)
-            tutController.pickedColor = true;
+        if (_tutorialController != null)
+            _tutorialController.pickedColor = true;
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (m_Animator != null)
-            m_Animator.SetBool("Selected", true);
+        if (_animator != null)
+            _animator.SetBool("Selected", true);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        if (m_Animator != null)
-            m_Animator.SetBool("Selected", false);
+        if (_animator != null)
+            _animator.SetBool("Selected", false);
     }
 }

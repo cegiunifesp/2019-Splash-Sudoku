@@ -1,8 +1,16 @@
 ﻿using UnityEngine;
+using UnityEngine.Serialization;
 
 public class RankingListView : MonoBehaviour
 {
-    public ScoreObject RankingEntryTemplate;
+    [FormerlySerializedAs("RankingEntryTemplate")]
+    public ScoreObject rankingEntryTemplate;
+
+    public ScoreObject RankingEntryTemplate
+    {
+        get => rankingEntryTemplate;
+        set => rankingEntryTemplate = value;
+    }
 
     public void Refresh()
     {
@@ -18,16 +26,16 @@ public class RankingListView : MonoBehaviour
 
     private void AddEntries(NetworkedScoreEntry[] scores)
     {
-        if (scores == null || RankingEntryTemplate == null)
+        if (scores == null || rankingEntryTemplate == null)
             return;
 
         for (var i = 0; i < scores.Length; i++)
         {
             var score = scores[i];
-            ScoreObject entry = Instantiate(RankingEntryTemplate, transform, false);
+            ScoreObject entry = Instantiate(rankingEntryTemplate, transform, false);
             entry.name = $"Ranking_Item_{i + 1}";
-            string formattedTempo = score.Score.EndsWith("s") ? score.Score : $"{score.Score}s";
-            entry.Init((i + 1).ToString(), score.Name, formattedTempo);
+            string formattedTime = score.Score.EndsWith("s") ? score.Score : $"{score.Score}s";
+            entry.Init((i + 1).ToString(), score.Name, formattedTime);
         }
     }
 
@@ -39,7 +47,7 @@ public class RankingListView : MonoBehaviour
             if (child.name.Contains("TitleLine") || child.name.Contains("Header") || child.GetSiblingIndex() == 0)
                 continue;
 
-            if (RankingEntryTemplate != null && child.gameObject == RankingEntryTemplate.gameObject)
+            if (rankingEntryTemplate != null && child.gameObject == rankingEntryTemplate.gameObject)
             {
                 child.gameObject.SetActive(false);
                 continue;

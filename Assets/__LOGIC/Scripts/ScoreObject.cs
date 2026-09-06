@@ -1,20 +1,28 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine;
+using UnityEngine.Serialization;
 using TMPro;
 
 public class ScoreObject : MonoBehaviour
 {
-    public TextMeshProUGUI Posicao;
-    public TextMeshProUGUI Nome;
-    public TextMeshProUGUI Score;
+    [FormerlySerializedAs("Posicao")]
+    public TextMeshProUGUI positionText;
 
-    public void Init(string positionText, string nameText, string pointsText)
+    [FormerlySerializedAs("Nome")]
+    public TextMeshProUGUI nameText;
+
+    [FormerlySerializedAs("Score")]
+    public TextMeshProUGUI scoreText;
+
+    // Backward compatibility properties
+    public TextMeshProUGUI Posicao => positionText;
+    public TextMeshProUGUI Nome => nameText;
+    public TextMeshProUGUI Score => scoreText;
+
+    public void Init(string positionStr, string nameStr, string pointsStr)
     {
         gameObject.SetActive(true);
-        Posicao.text = positionText;
-        Nome.text = nameText;
-        Score.text = pointsText;
+        if (positionText != null) positionText.text = positionStr;
+        if (nameText != null) nameText.text = nameStr;
+        if (scoreText != null) scoreText.text = pointsStr;
     }
 }

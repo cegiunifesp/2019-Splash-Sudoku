@@ -3,12 +3,12 @@ using UnityEngine.UI;
 
 public class SplashHit : MonoBehaviour
 {
-    private Paintable _parent;
-    private Image _image;
+    private Paintable _parentPaintable;
+    private Image _splashImage;
 
     private void Awake()
     {
-        _image = GetComponent<Image>();
+        _splashImage = GetComponent<Image>();
     }
 
     private void Start()
@@ -24,14 +24,14 @@ public class SplashHit : MonoBehaviour
         transform.Rotate(new Vector3(0, 0, Random.Range(-100f, 100f)));
     }
 
-    public void SetParent(Paintable p)
+    public void SetParent(Paintable parent)
     {
-        _parent = p;
+        _parentPaintable = parent;
 
         GameManager gm = GameManager.Instance;
-        if (gm != null && gm.CurrentColor.HasValue && _image != null)
+        if (gm != null && gm.CurrentColor.HasValue && _splashImage != null)
         {
-            _image.color = gm.CurrentColor.Value;
+            _splashImage.color = gm.CurrentColor.Value;
         }
     }
 
@@ -42,9 +42,9 @@ public class SplashHit : MonoBehaviour
 
     public void CallParent()
     {
-        if (_parent != null)
+        if (_parentPaintable != null)
         {
-            _parent.Splash();
+            _parentPaintable.Splash();
         }
     }
 }

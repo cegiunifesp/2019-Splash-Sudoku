@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 using TMPro;
 
@@ -10,7 +11,7 @@ public class GameManager : MonoBehaviour
 
     private static readonly int[][] DiagonalGroups = new int[][]
     {
-        // Direita
+        // Right diagonals
         new[] { 15, 21 },
         new[] { 10, 16, 22 },
         new[] { 5, 11, 17, 23 },
@@ -18,7 +19,7 @@ public class GameManager : MonoBehaviour
         new[] { 1, 7, 13, 19 },
         new[] { 2, 8, 14 },
         new[] { 3, 9 },
-        // Esquerda
+        // Left diagonals
         new[] { 1, 5 },
         new[] { 2, 6, 10 },
         new[] { 3, 7, 11, 15 },
@@ -31,37 +32,95 @@ public class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     [Header("Scenes")]
-    public GameObject Menu;
-    public GameObject Game;
-    public GameObject Score;
-    public GameObject Credits;
-    public GameObject OutBase;
-    public GameObject AddScore;
-    public GameObject Canvas;
+    [FormerlySerializedAs("Menu")]
+    public GameObject menuScene;
+
+    [FormerlySerializedAs("Game")]
+    public GameObject gameScene;
+
+    [FormerlySerializedAs("Score")]
+    public GameObject scoreScene;
+
+    [FormerlySerializedAs("Credits")]
+    public GameObject creditsScene;
+
+    [FormerlySerializedAs("OutBase")]
+    public GameObject outBase;
+
+    [FormerlySerializedAs("AddScore")]
+    public GameObject addScorePanel;
+
+    [FormerlySerializedAs("Canvas")]
+    public GameObject canvasRoot;
+
+    // Backward compatibility scene references
+    public GameObject Menu => menuScene;
+    public GameObject Game => gameScene;
+    public GameObject Score => scoreScene;
+    public GameObject Credits => creditsScene;
+    public GameObject AddScore => addScorePanel;
+    public GameObject Canvas => canvasRoot;
 
     [Header("Buttons")]
-    public GameObject QuitButton;
-    public GameObject BackButton;
-    public GameObject BackButton2;
+    [FormerlySerializedAs("QuitButton")]
+    public GameObject quitButton;
 
-    [Header("InGame")]
-    public TextMeshProUGUI Relogio;
-    public Animator Paleta;
-    private float _time = 0;
-    public Image Brush;
-    public bool Paused = false;
-    public ErrorMessage Erro;
+    [FormerlySerializedAs("BackButton")]
+    public GameObject backButton;
+
+    [FormerlySerializedAs("BackButton2")]
+    public GameObject backButton2;
+
+    public GameObject QuitButton => quitButton;
+    public GameObject BackButton => backButton;
+    public GameObject BackButton2 => backButton2;
+
+    [Header("InGame UI")]
+    [FormerlySerializedAs("Relogio")]
+    public TextMeshProUGUI timerText;
+
+    [FormerlySerializedAs("Paleta")]
+    public Animator paletteAnimator;
+
+    [FormerlySerializedAs("Brush")]
+    public Image brushImage;
+
+    [FormerlySerializedAs("Paused")]
+    public bool isPaused = false;
+
+    [FormerlySerializedAs("Erro")]
+    public ErrorMessage errorMessage;
+
+    public TextMeshProUGUI Relogio => timerText;
+    public Animator Paleta => paletteAnimator;
+    public Image Brush => brushImage;
+    public bool Paused { get => isPaused; set => isPaused = value; }
+    public bool IsPaused => isPaused;
+    public ErrorMessage Erro => errorMessage;
 
     [Header("Grid")]
-    public List<Paintable> Images;
+    [FormerlySerializedAs("Images")]
+    public List<Paintable> gridCells;
+
+    public List<Paintable> Images => gridCells;
 
     [Header("Colors")]
-    public List<Color> Colors;
+    [FormerlySerializedAs("Colors")]
+    public List<Color> colorPalette;
+
+    public List<Color> Colors => colorPalette;
 
     [Header("AddScore")]
-    public Text Nome;
-    public TextMeshProUGUI NomeTMP;
-    public TextMeshProUGUI ScoreText;
+    [FormerlySerializedAs("Nome")]
+    public Text nameLegacyText;
+
+    public TextMeshProUGUI nameTMP;
+
+    [FormerlySerializedAs("ScoreText")]
+    public TextMeshProUGUI scoreText;
+
+    public Text Nome => nameLegacyText;
+    public TextMeshProUGUI ScoreText => scoreText;
 
     [Header("Events")]
     public UnityEngine.Events.UnityEvent StartGameEvent;
@@ -69,7 +128,8 @@ public class GameManager : MonoBehaviour
 
     public Color? CurrentColor { get; set; } = null;
 
-    private SceneMovement sceneMovement = null;
+    private float _elapsedTime = 0f;
+    private SceneMovement _sceneMovement = null;
     private readonly HashSet<Color> _colorCheckBuffer = new HashSet<Color>();
 
     public void Awake()
@@ -83,19 +143,19 @@ public class GameManager : MonoBehaviour
 #endif
 
         Instance = this;
-        Hide(Game);
-        Hide(Score);
-        Hide(Credits);
+        Hide(gameScene);
+        Hide(scoreScene);
+        Hide(creditsScene);
         
-        if (Menu != null) Menu.SetActive(true);
-        if (AddScore != null) AddScore.SetActive(false);
-        if (BackButton != null) BackButton.SetActive(false);
-        if (BackButton2 != null) BackButton2.SetActive(false);
+        if (menuScene != null) menuScene.SetActive(true);
+        if (addScorePanel != null) addScorePanel.SetActive(false);
+        if (backButton != null) backButton.SetActive(false);
+        if (backButton2 != null) backButton2.SetActive(false);
 
-        SetCanvasGroupInteractable(Menu, true);
-        SetCanvasGroupInteractable(Game, false);
-        SetCanvasGroupInteractable(Score, false);
-        SetCanvasGroupInteractable(Credits, false);
+        SetCanvasGroupInteractable(menuScene, true);
+        SetCanvasGroupInteractable(gameScene, false);
+        SetCanvasGroupInteractable(scoreScene, false);
+        SetCanvasGroupInteractable(creditsScene, false);
     }
 
     private void SetCanvasGroupInteractable(GameObject target, bool interactable)
@@ -110,24 +170,24 @@ public class GameManager : MonoBehaviour
 
     public void StartGame()
     {
-        _time = 0;
-        if (Relogio != null) Relogio.text = "0";
+        _elapsedTime = 0f;
+        if (timerText != null) timerText.text = "0";
         ChangeCurrentColor(Color.white);
-        Paused = false;
+        isPaused = false;
     }
 
     public void StopGame()
     {
-        _time = 0;
-        if (Relogio != null) Relogio.text = "0";
-        if (Paleta != null) Paleta.enabled = true;
+        _elapsedTime = 0f;
+        if (timerText != null) timerText.text = "0";
+        if (paletteAnimator != null) paletteAnimator.enabled = true;
     }
 
-    private void _resetGame()
+    public void ResetGame()
     {
         ClearAll();
-        if (Relogio != null) Relogio.text = "0";
-        _time = 0;
+        if (timerText != null) timerText.text = "0";
+        _elapsedTime = 0f;
         ChangeCurrentColor(Color.white);
     }
 
@@ -139,52 +199,54 @@ public class GameManager : MonoBehaviour
         CheckResult result = CheckAll();
         if (result.IsSuccessful)
         {
-            int elapsedSeconds = Mathf.FloorToInt(_time);
-            if (ScoreText != null)
-                ScoreText.text = $"{elapsedSeconds} segundos";
-            if (AddScore != null)
-                AddScore.SetActive(true);
-            Paused = true;
+            int elapsedSeconds = Mathf.FloorToInt(_elapsedTime);
+            if (scoreText != null)
+                scoreText.text = $"{elapsedSeconds} segundos";
+            if (addScorePanel != null)
+                addScorePanel.SetActive(true);
+            isPaused = true;
         }
         else
         {
             foreach (int id in result.Errors)
             {
-                if (id >= 0 && id < Images.Count && Images[id] != null)
-                    Images[id].IndicaErro();
+                if (id >= 0 && id < gridCells.Count && gridCells[id] != null)
+                    gridCells[id].ShowErrorFeedback();
             }
-            if (Erro != null)
-                Erro.Show();
+            if (errorMessage != null)
+                errorMessage.Show();
         }
     }
 
     public void AddNewScore()
     {
-        string nome = string.Empty;
-        if (NomeTMP != null && !string.IsNullOrWhiteSpace(NomeTMP.text))
-            nome = NomeTMP.text;
-        else if (Nome != null && !string.IsNullOrWhiteSpace(Nome.text))
-            nome = Nome.text;
+        string playerName = string.Empty;
+        if (nameTMP != null && !string.IsNullOrWhiteSpace(nameTMP.text))
+            playerName = nameTMP.text;
+        else if (nameLegacyText != null && !string.IsNullOrWhiteSpace(nameLegacyText.text))
+            playerName = nameLegacyText.text;
 
-        if (!string.IsNullOrWhiteSpace(nome))
+        if (!string.IsNullOrWhiteSpace(playerName))
         {
-            NetworkedScore.Instance?.PushScore(nome, Mathf.FloorToInt(_time));
+            NetworkedScore.Instance?.PushScore(playerName, Mathf.FloorToInt(_elapsedTime));
         }
         CloseAddScore();
     }
 
     public void CloseAddScore()
     {
-        if (AddScore != null)
-            AddScore.SetActive(false);
-        GoTo(Menu);
+        if (addScorePanel != null)
+            addScorePanel.SetActive(false);
+        GoTo(menuScene);
     }
 
     private bool HasWhite()
     {
-        for (int i = 0; i < Images.Count; i++)
+        if (gridCells == null) return false;
+
+        for (int i = 0; i < gridCells.Count; i++)
         {
-            var paintable = Images[i];
+            var paintable = gridCells[i];
             if (paintable != null && paintable.color == Color.white)
                 return true;
         }
@@ -215,8 +277,8 @@ public class GameManager : MonoBehaviour
         int end = start + GridSize;
         for (int i = start; i < end; i++)
         {
-            if (i >= Images.Count || Images[i] == null) continue;
-            Paintable image = Images[i];
+            if (gridCells == null || i >= gridCells.Count || gridCells[i] == null) continue;
+            Paintable image = gridCells[i];
             if (!_colorCheckBuffer.Add(image.color))
                 errors.Add(i);
         }
@@ -227,8 +289,8 @@ public class GameManager : MonoBehaviour
         _colorCheckBuffer.Clear();
         for (int i = column; i < GridCellCount; i += GridSize)
         {
-            if (i >= Images.Count || Images[i] == null) continue;
-            Paintable image = Images[i];
+            if (gridCells == null || i >= gridCells.Count || gridCells[i] == null) continue;
+            Paintable image = gridCells[i];
             if (!_colorCheckBuffer.Add(image.color))
                 errors.Add(i);
         }
@@ -240,8 +302,8 @@ public class GameManager : MonoBehaviour
         for (int k = 0; k < arr.Length; k++)
         {
             int n = arr[k];
-            if (n >= Images.Count || Images[n] == null) continue;
-            Paintable image = Images[n];
+            if (gridCells == null || n >= gridCells.Count || gridCells[n] == null) continue;
+            Paintable image = gridCells[n];
             if (!_colorCheckBuffer.Add(image.color))
                 errors.Add(n);
         }
@@ -252,12 +314,12 @@ public class GameManager : MonoBehaviour
         Application.Quit();
     }
 
-    public void GoToMenu() => GoTo(Menu);
-    public void GoToGame() => GoTo(Game);
-    public void GoToScore() => GoTo(Score);
-    public void GoToCredits() => GoTo(Credits);
+    public void GoToMenu() => GoTo(menuScene);
+    public void GoToGame() => GoTo(gameScene);
+    public void GoToScore() => GoTo(scoreScene);
+    public void GoToCredits() => GoTo(creditsScene);
 
-    private void GoTo(GameObject scene)
+    public void GoTo(GameObject scene)
     {
         if (scene == null) return;
 
@@ -265,40 +327,40 @@ public class GameManager : MonoBehaviour
         if (current == scene)
             return;
 
-        if (current == Game)
+        if (current == gameScene)
         {
             StopGameEvent?.Invoke();
-            _resetGame();
+            ResetGame();
         }
-        else if (scene == Game)
+        else if (scene == gameScene)
         {
             StartGameEvent?.Invoke();
         }
 
-        if (BackButton != null) BackButton.SetActive(false);
-        if (BackButton2 != null) BackButton2.SetActive(false);
-        if (QuitButton != null) QuitButton.SetActive(false);
+        if (backButton != null) backButton.SetActive(false);
+        if (backButton2 != null) backButton2.SetActive(false);
+        if (quitButton != null) quitButton.SetActive(false);
         
         scene.SetActive(true);
-        Fade(current, scene, Canvas);
+        Fade(current, scene, canvasRoot);
     }
 
     private void Fade(GameObject sceneToHide, GameObject sceneToShow, GameObject allScenes)
     {
         if (sceneToHide == null || sceneToShow == null || allScenes == null)
             return;
-        sceneMovement = new SceneMovement(sceneToHide, sceneToShow, allScenes);
+        _sceneMovement = new SceneMovement(sceneToHide, sceneToShow, allScenes);
     }
 
     private GameObject GetCurrentScene()
     {
-        if (Menu != null && Menu.activeSelf)
-            return Menu;
-        if (Game != null && Game.activeSelf)
-            return Game;
-        if (Score != null && Score.activeSelf)
-            return Score;
-        return Credits;
+        if (menuScene != null && menuScene.activeSelf)
+            return menuScene;
+        if (gameScene != null && gameScene.activeSelf)
+            return gameScene;
+        if (scoreScene != null && scoreScene.activeSelf)
+            return scoreScene;
+        return creditsScene;
     }
 
     private void Hide(GameObject target)
@@ -309,53 +371,53 @@ public class GameManager : MonoBehaviour
 
     public void Update()
     {
-        if (!Paused)
+        if (!isPaused)
         {
-            _time += Time.deltaTime;
-            if (Relogio != null)
-                Relogio.text = $"{Mathf.FloorToInt(_time)}";
+            _elapsedTime += Time.deltaTime;
+            if (timerText != null)
+                timerText.text = $"{Mathf.FloorToInt(_elapsedTime)}";
         }
 
-        if (sceneMovement != null)
+        if (_sceneMovement != null)
         {
             float deltaTime = Time.deltaTime;
-            sceneMovement.CurTime += deltaTime;
-            Vector3 move = (deltaTime / sceneMovement.TotalTime) * sceneMovement.TotalMove;
-            if (((sceneMovement.CurMove.x + move.x > sceneMovement.TotalMove.x) && (sceneMovement.TotalMove.x > 0))
+            _sceneMovement.CurTime += deltaTime;
+            Vector3 move = (deltaTime / _sceneMovement.TotalTime) * _sceneMovement.TotalMove;
+            if (((_sceneMovement.CurMove.x + move.x > _sceneMovement.TotalMove.x) && (_sceneMovement.TotalMove.x > 0))
                 ||
-                ((sceneMovement.CurMove.x + move.x < sceneMovement.TotalMove.x) && (sceneMovement.TotalMove.x < 0)))
+                ((_sceneMovement.CurMove.x + move.x < _sceneMovement.TotalMove.x) && (_sceneMovement.TotalMove.x < 0)))
             {
-                move = sceneMovement.TotalMove - sceneMovement.CurMove;
-                sceneMovement.CurMove = sceneMovement.TotalMove;
+                move = _sceneMovement.TotalMove - _sceneMovement.CurMove;
+                _sceneMovement.CurMove = _sceneMovement.TotalMove;
             }
             else
             {
-                sceneMovement.CurMove += move;
+                _sceneMovement.CurMove += move;
             }
 
-            if (sceneMovement.ScenesTransform != null)
-                sceneMovement.ScenesTransform.position = sceneMovement.ScenesTransform.position - move;
+            if (_sceneMovement.ScenesTransform != null)
+                _sceneMovement.ScenesTransform.position = _sceneMovement.ScenesTransform.position - move;
 
-            if (sceneMovement.CurTime >= sceneMovement.TotalTime)
+            if (_sceneMovement.CurTime >= _sceneMovement.TotalTime)
             {
-                SetCanvasGroupInteractable(sceneMovement.NextScene, true);
+                SetCanvasGroupInteractable(_sceneMovement.NextScene, true);
 
-                if (sceneMovement.NextScene == Menu)
+                if (_sceneMovement.NextScene == menuScene)
                 {
-                    if (QuitButton != null) QuitButton.SetActive(true);
+                    if (quitButton != null) quitButton.SetActive(true);
                 }
-                else if (sceneMovement.NextScene == Score)
+                else if (_sceneMovement.NextScene == scoreScene)
                 {
-                    if (BackButton2 != null) BackButton2.SetActive(true);
+                    if (backButton2 != null) backButton2.SetActive(true);
                 }
                 else
                 {
-                    if (BackButton != null) BackButton.SetActive(true);
+                    if (backButton != null) backButton.SetActive(true);
                 }
 
-                Hide(sceneMovement.CurrentScene);
-                sceneMovement.NextScene?.GetComponent<ISceneManager>()?.Ready();
-                sceneMovement = null;
+                Hide(_sceneMovement.CurrentScene);
+                _sceneMovement.NextScene?.GetComponent<ISceneManager>()?.Ready();
+                _sceneMovement = null;
             }
         }
     }
@@ -371,19 +433,21 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void ChangeCurrentColor(Color c)
+    public void ChangeCurrentColor(Color newColor)
     {
-        if (Brush != null)
-            Brush.color = c;
-        CurrentColor = c;
+        if (brushImage != null)
+            brushImage.color = newColor;
+        CurrentColor = newColor;
     }
 
     public void ClearAll()
     {
-        for (int i = 0; i < Images.Count; i++)
+        if (gridCells == null) return;
+
+        for (int i = 0; i < gridCells.Count; i++)
         {
-            if (Images[i] != null)
-                Images[i].Clear();
+            if (gridCells[i] != null)
+                gridCells[i].Clear();
         }
     }
 

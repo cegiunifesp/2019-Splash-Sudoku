@@ -1,11 +1,36 @@
 ﻿using UnityEngine;
+using UnityEngine.Serialization;
 
 public class ScoreSceneManager : MonoBehaviour, ISceneManager
 {
     [Header("UI References")]
-    public GameObject RankingList;
-    public GameObject ScoreBase;
-    public GameObject Loading;
+    [FormerlySerializedAs("RankingList")]
+    public GameObject rankingList;
+
+    [FormerlySerializedAs("ScoreBase")]
+    public GameObject scoreBaseTemplate;
+
+    [FormerlySerializedAs("Loading")]
+    public GameObject loadingIndicator;
+
+    // Backward compatibility properties
+    public GameObject RankingList
+    {
+        get => rankingList;
+        set => rankingList = value;
+    }
+
+    public GameObject ScoreBase
+    {
+        get => scoreBaseTemplate;
+        set => scoreBaseTemplate = value;
+    }
+
+    public GameObject Loading
+    {
+        get => loadingIndicator;
+        set => loadingIndicator = value;
+    }
 
     public void Awake()
     {
@@ -18,11 +43,11 @@ public class ScoreSceneManager : MonoBehaviour, ISceneManager
 
     public void LoadRanking()
     {
-        if (Loading != null && Loading.activeSelf)
+        if (loadingIndicator != null && loadingIndicator.activeSelf)
             return;
 
-        if (Loading != null)
-            Loading.SetActive(true);
+        if (loadingIndicator != null)
+            loadingIndicator.SetActive(true);
 
         Transform container = ResolveContainer();
         GameObject template = ResolveTemplate(container);
@@ -38,61 +63,60 @@ public class ScoreSceneManager : MonoBehaviour, ISceneManager
             {
                 if (entries != null && container != null && template != null)
                 {
-                    int pos = 0;
+                    int positionIndex = 0;
                     foreach (NetworkedScoreEntry entry in entries)
                     {
-                        pos++;
-                        AddScore(container, template, pos, entry.Name, entry.Score);
+                        positionIndex++;
+                        AddScore(container, template, positionIndex, entry.Name, entry.Score);
                     }
                 }
 
-                if (Loading != null)
-                    Loading.SetActive(false);
+                if (loadingIndicator != null)
+                    loadingIndicator.SetActive(false);
             });
         }
         else
         {
-            if (Loading != null)
-                Loading.SetActive(false);
+            if (loadingIndicator != null)
+                loadingIndicator.SetActive(false);
         }
     }
 
     private Transform ResolveContainer()
     {
-        if (RankingList == null)
+        if (rankingList == null)
             return null;
 
-        // Se RankingList for o Content do ScrollView e tiver o filho Ranking_LIST, usa o filho
-        Transform subList = RankingList.transform.Find("Ranking_LIST");
+        Transform subList = rankingList.transform.Find("Ranking_LIST");
         if (subList != null)
             return subList;
 
-        return RankingList.transform;
+        return rankingList.transform;
     }
 
     private GameObject ResolveTemplate(Transform container)
     {
-        if (ScoreBase != null && ScoreBase.GetComponent<ScoreObject>() != null)
-            return ScoreBase;
+        if (scoreBaseTemplate != null && scoreBaseTemplate.GetComponent<ScoreObject>() != null)
+            return scoreBaseTemplate;
 
         if (container != null)
         {
             ScoreObject[] existing = container.GetComponentsInChildren<ScoreObject>(true);
             if (existing.Length > 0)
             {
-                ScoreBase = existing[0].gameObject;
-                return ScoreBase;
+                scoreBaseTemplate = existing[0].gameObject;
+                return scoreBaseTemplate;
             }
         }
 
         ScoreObject found = FindObjectOfType<ScoreObject>();
         if (found != null)
         {
-            ScoreBase = found.gameObject;
-            return ScoreBase;
+            scoreBaseTemplate = found.gameObject;
+            return scoreBaseTemplate;
         }
 
-        return ScoreBase;
+        return scoreBaseTemplate;
     }
 
     private void ClearDynamicEntries(Transform container, GameObject template)
@@ -103,14 +127,14 @@ public class ScoreSceneManager : MonoBehaviour, ISceneManager
         {
             Transform child = container.GetChild(i);
 
-            // Preserva o cabeçalho da tabela (TitleLine_PANEL)
+            // Preserve header rows
             if (child.name.Contains("TitleLine") || child.name.Contains("Header") || child.GetSiblingIndex() == 0)
             {
                 child.gameObject.SetActive(true);
                 continue;
             }
 
-            // O template original deve ficar apenas oculto para clonagem
+            // The template itself stays inactive for instantiation
             if (template != null && child.gameObject == template)
             {
                 child.gameObject.SetActive(false);
@@ -121,20 +145,20 @@ public class ScoreSceneManager : MonoBehaviour, ISceneManager
         }
     }
 
-    private void AddScore(Transform container, GameObject template, int pos, string nome, string tempo)
+    private void AddScore(Transform container, GameObject template, int position, string playerName, string scoreTime)
     {
         if (container == null || template == null)
             return;
 
         GameObject row = Instantiate(template, container, false);
-        row.name = $"Score_Entry_{pos}";
+        row.name = $"Score_Entry_{position}";
         row.SetActive(true);
 
         var scoreObj = row.GetComponent<ScoreObject>();
         if (scoreObj != null)
         {
-            string formattedTempo = tempo.EndsWith("s") ? tempo : $"{tempo}s";
-            scoreObj.Init(pos.ToString(), nome, formattedTempo);
+            string formattedScoreTime = scoreTime.EndsWith("s") ? scoreTime : $"{scoreTime}s";
+            scoreObj.Init(position.ToString(), playerName, formattedScoreTime);
         }
     }
 }
