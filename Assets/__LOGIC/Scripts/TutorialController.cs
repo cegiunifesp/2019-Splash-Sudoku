@@ -7,6 +7,8 @@ public class TutorialController : MonoBehaviour
     private bool m_ShowTutorial = true;
     public bool pickedColor = false, painted = false;
 
+    public bool IsTutorialActive => m_ShowTutorial;
+
     [SerializeField] private List<Animator> m_ColorPickers;
     [SerializeField] private CanvasGroup pickCanvasGroup, paintCanvasGroup01, paintCanvasGroup02, finalInstruction;
     [SerializeField] private float fadeDuration = 0.5f;
@@ -135,6 +137,11 @@ public class TutorialController : MonoBehaviour
 
         StartCoroutine(Fade(0f, finalInstruction));
         m_ShowTutorial = false;
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.StartTimer();
+        }
     }
 
     public void StopTutorial()
@@ -147,5 +154,10 @@ public class TutorialController : MonoBehaviour
 
         StopAllCoroutines();
         ResetCanvases();
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.StopTimer();
+        }
     }
 }

@@ -129,19 +129,12 @@ public class GameManager : MonoBehaviour
     public Color? CurrentColor { get; set; } = null;
 
     private float _elapsedTime = 0f;
+    private bool _isTimerRunning = false;
     private SceneMovement _sceneMovement = null;
     private readonly HashSet<Color> _colorCheckBuffer = new HashSet<Color>();
 
     public void Awake()
     {
-#if UNITY_STANDALONE && !UNITY_EDITOR
-        Screen.SetResolution(360, 720, false);
-#endif
-
-#if UNITY_WEBGL && !UNITY_EDITOR
-        Screen.SetResolution(280, 560, false);
-#endif
-
         Instance = this;
         Hide(gameScene);
         Hide(scoreScene);
@@ -174,11 +167,34 @@ public class GameManager : MonoBehaviour
         if (timerText != null) timerText.text = "0";
         ChangeCurrentColor(Color.white);
         isPaused = false;
+
+        TutorialController tut = FindObjectOfType<TutorialController>();
+        if (tut != null && tut.IsTutorialActive)
+        {
+            _isTimerRunning = false;
+        }
+        else
+        {
+            _isTimerRunning = true;
+        }
+    }
+
+    public void StartTimer()
+    {
+        _elapsedTime = 0f;
+        if (timerText != null) timerText.text = "0";
+        _isTimerRunning = true;
+    }
+
+    public void StopTimer()
+    {
+        _isTimerRunning = false;
     }
 
     public void StopGame()
     {
         _elapsedTime = 0f;
+        _isTimerRunning = false;
         if (timerText != null) timerText.text = "0";
         if (paletteAnimator != null) paletteAnimator.enabled = true;
     }
@@ -188,6 +204,7 @@ public class GameManager : MonoBehaviour
         ClearAll();
         if (timerText != null) timerText.text = "0";
         _elapsedTime = 0f;
+        _isTimerRunning = false;
         ChangeCurrentColor(Color.white);
     }
 
@@ -199,6 +216,7 @@ public class GameManager : MonoBehaviour
         CheckResult result = CheckAll();
         if (result.IsSuccessful)
         {
+            _isTimerRunning = false;
             int elapsedSeconds = Mathf.FloorToInt(_elapsedTime);
             if (scoreText != null)
                 scoreText.text = $"{elapsedSeconds} segundos";
@@ -371,7 +389,7 @@ public class GameManager : MonoBehaviour
 
     public void Update()
     {
-        if (!isPaused)
+        if (!isPaused && _isTimerRunning)
         {
             _elapsedTime += Time.deltaTime;
             if (timerText != null)
@@ -380,26 +398,24 @@ public class GameManager : MonoBehaviour
 
         if (_sceneMovement != null)
         {
-            float deltaTime = Time.deltaTime;
-            _sceneMovement.CurTime += deltaTime;
-            Vector3 move = (deltaTime / _sceneMovement.TotalTime) * _sceneMovement.TotalMove;
-            if (((_sceneMovement.CurMove.x + move.x > _sceneMovement.TotalMove.x) && (_sceneMovement.TotalMove.x > 0))
-                ||
-                ((_sceneMovement.CurMove.x + move.x < _sceneMovement.TotalMove.x) && (_sceneMovement.TotalMove.x < 0)))
-            {
-                move = _sceneMovement.TotalMove - _sceneMovement.CurMove;
-                _sceneMovement.CurMove = _sceneMovement.TotalMove;
-            }
-            else
-            {
-                _sceneMovement.CurMove += move;
-            }
+            _sceneMovement.CurTime += Time.deltaTime;
+            float t = Mathf.Clamp01(_sceneMovement.CurTime / _sceneMovement.TotalTime);
+            float smoothT = Mathf.SmoothStep(0f, 1f, t);
 
             if (_sceneMovement.ScenesTransform != null)
-                _sceneMovement.ScenesTransform.position = _sceneMovement.ScenesTransform.position - move;
+            {
+                _sceneMovement.ScenesTransform.position = Vector3.Lerp(
+                    _sceneMovement.StartPosition,
+                    _sceneMovement.TargetPosition,
+                    smoothT
+                );
+            }
 
             if (_sceneMovement.CurTime >= _sceneMovement.TotalTime)
             {
+                if (_sceneMovement.ScenesTransform != null)
+                    _sceneMovement.ScenesTransform.position = _sceneMovement.TargetPosition;
+
                 SetCanvasGroupInteractable(_sceneMovement.NextScene, true);
 
                 if (_sceneMovement.NextScene == menuScene)
@@ -461,8 +477,8 @@ public class GameManager : MonoBehaviour
         public Transform HideTransform => CurrentScene != null ? CurrentScene.transform : null;
         public Transform ScenesTransform => AllScene != null ? AllScene.transform : null;
 
-        public Vector3 TotalMove { get; }
-        public Vector3 CurMove { get; set; }
+        public Vector3 StartPosition { get; }
+        public Vector3 TargetPosition { get; }
         public float TotalTime { get; }
         public float CurTime { get; set; }
 
@@ -471,13 +487,21 @@ public class GameManager : MonoBehaviour
             CurrentScene = currentScene;
             NextScene = nextScene;
             AllScene = allScenes;
-            TotalMove = (ShowTransform != null && HideTransform != null) 
-                ? ShowTransform.position - HideTransform.position 
-                : Vector3.zero;
 
-            CurMove = Vector3.zero;
+            if (ScenesTransform != null && ShowTransform != null && HideTransform != null)
+            {
+                Vector3 displacement = ShowTransform.position - HideTransform.position;
+                StartPosition = ScenesTransform.position;
+                TargetPosition = StartPosition - displacement;
+            }
+            else
+            {
+                StartPosition = Vector3.zero;
+                TargetPosition = Vector3.zero;
+            }
+
             TotalTime = 0.65f;
-            CurTime = 0;
+            CurTime = 0f;
         }
     }
 }
